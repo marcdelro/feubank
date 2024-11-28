@@ -9,18 +9,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Objects;
-import java.util.List;
 
 public class Application {
 
     // Stores the users
-    private List<BankAccountClass.UserAccount> accounts;
+    private Authentication authentication;
 
-    // State that will check the status of the account
-    public BankAccountClass.UserAccount loggedInAccount;
+    private CardLayout cardLayout;
+    private JPanel mainPanel;
 
     public Application() {
-        accounts = new ArrayList<>();
+        authentication = new Authentication();
     }
 
     public void createLoginFrame() {
@@ -109,7 +108,7 @@ public class Application {
                 String username = usernameField.getText();
                 String password = new String(passwordField.getPassword());
 
-                if (authenticateUser(username, password)) {
+                if (authentication.authenticate(username, password)) {
                     // Login successful, open home page
                     frame.setVisible(false);  // Hide login frame
                     createHomePage();        // Show home page
@@ -146,222 +145,391 @@ public class Application {
         frame.setVisible(true);
     }
 
-    private boolean authenticateUser(String username, String password) {
-        for (BankAccountClass.UserAccount account : accounts) {
-            if (account.checkUserCredentials(username, password)) {
-                loggedInAccount = account;
-                return true;
+    public void createHomePage() {
+            JFrame frame = new JFrame("Banking Dashboard");
+            frame.setSize(1000, 700);
+            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+            frame.setResizable(false);
+            frame.setLocationRelativeTo(null);
+            frame.setLayout(new BorderLayout());
+        
+            // Create CardLayout for main content
+            CardLayout cardLayout = new CardLayout();
+            JPanel mainContentCards = new JPanel(cardLayout);
+            mainContentCards.setBackground(Color.WHITE);
+        
+            // Sidebar
+            JPanel sidebar = new JPanel();
+            sidebar.setBackground(Color.decode("#1B5045"));
+            sidebar.setPreferredSize(new Dimension(180, frame.getHeight()));
+            sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+        
+            // Logo and title
+            JLabel logoLabel = new JLabel("FEU", SwingConstants.LEFT);
+            logoLabel.setForeground(Color.decode("#F4E27C"));
+            logoLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+        
+            JLabel onlineLabel = new JLabel("Online", SwingConstants.LEFT);
+            onlineLabel.setForeground(Color.WHITE);
+            onlineLabel.setFont(new Font("Arial", Font.BOLD, 18));
+            onlineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+            onlineLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 0));
+        
+            sidebar.add(Box.createVerticalStrut(20)); 
+            sidebar.add(logoLabel);
+            sidebar.add(onlineLabel);
+        
+            // Create navigation items with panels
+            String[] navItems = {"Home", "Load", "Transfer", "Loan", "Bills", "Inbox"};
+            JPanel[] navPanels = new JPanel[navItems.length];
+            
+            for (int i = 0; i < navItems.length; i++) {
+                navPanels[i] = new JPanel(new BorderLayout());
+                navPanels[i].setOpaque(false);
+                
+                // Create label
+                JLabel navLabel = new JLabel(navItems[i], SwingConstants.LEFT);
+                navLabel.setForeground(Color.WHITE);
+                navLabel.setFont(new Font("Arial", Font.BOLD, 14));
+                navLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0)); //
+
+                navPanels[i].setMinimumSize(new Dimension(180, 3000));
+                navPanels[i].setMaximumSize(new Dimension(180, 3000));
+
+                final int index = i;
+                navPanels[i].addMouseListener(new java.awt.event.MouseAdapter() {
+                    @Override
+                    public void mouseClicked(java.awt.event.MouseEvent e) {
+                        // Reset all backgrounds
+                        for (JPanel panel : navPanels) {
+                            panel.setBackground(new Color(27, 80, 69));
+                            panel.setOpaque(false);
+                        }
+                        // Highlight selected
+                        navPanels[index].setBackground(new Color(62, 182, 122));
+                        navPanels[index].setOpaque(true);
+                        // Switch content
+                        cardLayout.show(mainContentCards, navItems[index].toLowerCase());
+                    }
+                });
+
+                navPanels[i].add(navLabel, BorderLayout.CENTER);
+                sidebar.add(navPanels[i]);
+                
+                // Create and add content panel
+                JPanel contentPanel = createContentPanel(navItems[i].toLowerCase());
+                mainContentCards.add(contentPanel, navItems[i].toLowerCase());
             }
+            // Highlight the first item
+            navPanels[0].setBackground(new Color(62, 182, 122));
+            navPanels[0].setOpaque(true);
+            cardLayout.show(mainContentCards, "home");
+        
+            // Add glue to push remaining items to bottom
+            sidebar.add(Box.createVerticalGlue());
+        
+            // Add user info at bottom
+            String name = capitalizeFirstLetter(authentication.getLoggedInAccount().firstName) + " " + 
+                         capitalizeFirstLetter(authentication.getLoggedInAccount().lastName);
+            JLabel userProfile = new JLabel(name, SwingConstants.LEFT);
+            userProfile.setForeground(Color.WHITE);
+            userProfile.setFont(new Font("Arial", Font.BOLD, 14));
+            userProfile.setAlignmentX(Component.LEFT_ALIGNMENT);
+            userProfile.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+            sidebar.add(userProfile);
+
+            // Add components to frame
+            frame.add(sidebar, BorderLayout.WEST);
+            frame.add(mainContentCards, BorderLayout.CENTER);
+            
+            frame.setVisible(true);
         }
-        return false;
+
+
+    // Add the cards panel to the frame
+    public static String capitalizeFirstLetter(String input) {
+        if (input == null || input.isEmpty()) {
+            return input;
+        }
+        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
     }
 
-    public void createHomePage() {
-        // Main Frame
-        JFrame frame = new JFrame("Banking Dashboard");
-        frame.setSize(1000, 700);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
+    private JPanel createContentPanel(String type) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        
+        return switch (type) {
+            case "home" -> createHomeContent();
+            case "load" -> createLoadContent();
+            case "transfer" -> createTransferPage();
+            //case "bills" -> createBillsPage();
+            default -> panel;
+        };
+    }
 
-        // Sidebar Panel
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(Color.decode("#1B5045"));
-        sidebar.setPreferredSize(new Dimension(180, frame.getHeight()));
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
+    private JPanel createHomeContent(){
 
-        JLabel logoLabel = new JLabel("FEU", SwingConstants.LEFT);
-        logoLabel.setForeground(Color.decode("#F4E27C"));
-        logoLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
+        BankAccountClass.UserAccount user = authentication.getLoggedInAccount();
 
-        JLabel onlineLabel = new JLabel("Online", SwingConstants.LEFT);
-        onlineLabel.setForeground(Color.white);
-        onlineLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        onlineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        onlineLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 0));
-
-        sidebar.add(Box.createVerticalStrut(20));
-        sidebar.add(logoLabel);
-        sidebar.add(onlineLabel);
-
-        // NavBar
-        JLabel load = new JLabel("Load", SwingConstants.LEFT);
-        load.setForeground(Color.white);
-        load.setFont(new Font("Arial",Font.BOLD,14));
-        load.setAlignmentX(Component.LEFT_ALIGNMENT);
-        load.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(load);
-
-        JLabel transfer = new JLabel("Transfer", SwingConstants.LEFT);
-        transfer.setForeground(Color.white);
-        transfer.setFont(new Font("Arial",Font.BOLD,14));
-        transfer.setAlignmentX(Component.LEFT_ALIGNMENT);
-        transfer.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        transfer.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                frame.dispose();
-                openTransferPage(frame);
-            }
-        });
-        sidebar.add(transfer);
-
-        frame.add(sidebar, BorderLayout.WEST);
-
-        // Set frame visible
-        frame.setVisible(true);
-
-        JLabel loan = new JLabel("Loan", SwingConstants.LEFT);
-        loan.setFont(new Font("Arial",Font.BOLD,14));
-        loan.setForeground(Color.white);
-        loan.setAlignmentX(Component.LEFT_ALIGNMENT);
-        loan.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(loan);
-
-        JLabel bills = new JLabel("Bills", SwingConstants.LEFT);
-        bills.setForeground(Color.white);
-        bills.setFont(new Font("Arial",Font.BOLD,14));
-        bills.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bills.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(bills);
-
-        JLabel inbox = new JLabel("Inbox", SwingConstants.LEFT);
-        inbox.setForeground(Color.white);
-        inbox.setFont(new Font("Arial",Font.BOLD,14));
-        inbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        inbox.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(inbox);
-
-        // Add glue to push remaining items to the bottom
-        sidebar.add(Box.createVerticalGlue());
-
-        String name = capitalizeFirstLetter(loggedInAccount.firstName) + " " + capitalizeFirstLetter(loggedInAccount.lastName);
-
-        // Bottom menu items
-        JLabel userProfile = new JLabel(name, SwingConstants.LEFT);
-        userProfile.setForeground(Color.WHITE);
-        userProfile.setFont(new Font("Arial", Font.BOLD, 14));
-        userProfile.setAlignmentX(Component.LEFT_ALIGNMENT);
-        userProfile.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(userProfile);
-
-        JLabel customerSupport = new JLabel("Customer Support", SwingConstants.LEFT);
-        customerSupport.setForeground(Color.WHITE);
-        customerSupport.setFont(new Font("Arial", Font.BOLD, 14));
-        customerSupport.setAlignmentX(Component.LEFT_ALIGNMENT);
-        customerSupport.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(customerSupport);
-
-        JLabel accountSettings = new JLabel("Account Settings", SwingConstants.LEFT);
-        accountSettings.setForeground(Color.WHITE);
-        accountSettings.setFont(new Font("Arial", Font.BOLD, 14));
-        accountSettings.setAlignmentX(Component.LEFT_ALIGNMENT);
-        accountSettings.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 0)); // Padding
-        sidebar.add(accountSettings);
-
-        // Header Panel
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(Color.WHITE);
-        JLabel welcomeLabel = new JLabel("Welcome, Patricia!", SwingConstants.LEFT);
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
-        header.add(welcomeLabel, BorderLayout.WEST);
-
-        // Main Content Panel
-        JPanel mainContent = new JPanel();
-        mainContent.setLayout(new BorderLayout());
-        mainContent.setBackground(Color.WHITE);
-
-        // Top Panel
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new BorderLayout());
+        JPanel homePanel = new JPanel(new BorderLayout());
+        homePanel.setBackground(Color.WHITE);
+        
+        // Top Panel for Welcome and Cards
+        JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setBackground(Color.WHITE);
-
-
-        // Card Panel (Account Summary)
-        JPanel cardPanel = new JPanel();
-        cardPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 10));
-        cardPanel.setBackground(Color.white);
-
+    
         // Welcome User
-        JLabel welcomeUser = new JLabel(name);
-        welcomeUser.setForeground(Color.black);
-        welcomeUser.setFont(new Font("Arial", Font.BOLD, 24));
-        welcomeUser.setBorder(BorderFactory.createEmptyBorder(10,20,0,0));
-        topPanel.add(welcomeUser, BorderLayout.NORTH);
-
+        String name = capitalizeFirstLetter(user.firstName) + " " +
+                     capitalizeFirstLetter(user.lastName);
+        JLabel welcomeLabel = new JLabel("Welcome, " + name, SwingConstants.LEFT);
+        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        welcomeLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        topPanel.add(welcomeLabel, BorderLayout.NORTH);
+    
+        // Card Panel (Account Summary)
+        JPanel cardPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 10));
+        cardPanel.setBackground(Color.WHITE);
+    
         // Savings Account Card
-        JPanel savingsCard = new JPanel();
-        savingsCard.setLayout(new BorderLayout());
+        JPanel savingsCard = new JPanel(new BorderLayout());
         savingsCard.setPreferredSize(new Dimension(250, 150));
         savingsCard.setBackground(Color.decode("#FBE470"));
         savingsCard.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-
+    
         JLabel savingsLabel = new JLabel("Savings Account", SwingConstants.LEFT);
         savingsLabel.setFont(new Font("Arial", Font.BOLD, 14));
         savingsLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 0));
         savingsCard.add(savingsLabel, BorderLayout.NORTH);
-
-        JLabel balanceLabel = new JLabel("P " + loggedInAccount.balance, SwingConstants.CENTER);
+    
+        JLabel balanceLabel = new JLabel("P " + user.balance, SwingConstants.CENTER);
         balanceLabel.setFont(new Font("Arial", Font.BOLD, 24));
         savingsCard.add(balanceLabel, BorderLayout.CENTER);
-
-        JLabel detailsLabel = new JLabel("●●●● 1764", SwingConstants.RIGHT);
-        detailsLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-        detailsLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 10));
-        savingsCard.add(detailsLabel, BorderLayout.SOUTH);
-
-        // Add Savings Card to Main Panel
+    
         cardPanel.add(savingsCard);
-
-        // Add dummy cards
-        for (int i = 0; i < 3; i++) {
-            JPanel dummyCard = new JPanel();
-            dummyCard.setPreferredSize(new Dimension(150, 150));
-            dummyCard.setBackground(Color.decode("#EAEAEA"));
-            dummyCard.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-            cardPanel.add(dummyCard);
-        }
         topPanel.add(cardPanel, BorderLayout.CENTER);
-        mainContent.add(topPanel, BorderLayout.NORTH);
-
+    
+        // Add top panel to home panel
+        homePanel.add(topPanel, BorderLayout.NORTH);
+    
         // Transactions Panel
         JPanel transactionsPanel = new JPanel();
         transactionsPanel.setLayout(new BoxLayout(transactionsPanel, BoxLayout.Y_AXIS));
         transactionsPanel.setBackground(Color.decode("#F5F5F5"));
         transactionsPanel.setBorder(BorderFactory.createTitledBorder("Transactions"));
 
-        for (int i = 0; i < 5; i++) {
-            JLabel transaction = new JLabel("Transaction #" + (i + 1) + ": Details");
-            transaction.setFont(new Font("Arial", Font.PLAIN, 14));
-            transaction.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 0));
-            transactionsPanel.add(transaction);
+        ArrayList<BankAccountClass.Transaction> userTransactions = user.getTransactions();
+
+        for (BankAccountClass.Transaction transaction : userTransactions) {
+            JLabel transactionLabel = new JLabel(transaction.details + ": "+ transaction.amount);
+            transactionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            transactionLabel.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 0));
+            transactionsPanel.add(transactionLabel);
         }
-
-        mainContent.add(transactionsPanel, BorderLayout.CENTER);
-
-        // Add components to frame
-        frame.add(sidebar, BorderLayout.WEST);
-        frame.add(mainContent, BorderLayout.CENTER);
-
-        frame.setVisible(true);
+    
+        homePanel.add(transactionsPanel, BorderLayout.CENTER);
+    
+        return homePanel;
     }
 
-    public static String capitalizeFirstLetter(String input) {
-        if (input == null || input.isEmpty()) {
-            return input; // Return as is if input is null or empty
-        }
-        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
+    private JPanel createTransferPage(){
+
+        BankAccountClass.UserAccount user = authentication.getLoggedInAccount();
+
+        JPanel transferPanel = new JPanel(null);
+        transferPanel.setBackground(Color.WHITE);
+        transferPanel.setPreferredSize(new Dimension(800, 700));
+
+        // Left Panel (White)
+        JPanel leftPanel = new JPanel(null);
+        leftPanel.setBackground(Color.WHITE);
+        leftPanel.setBounds(0, 0, 400, 700);
+
+        JLabel titleLabel = new JLabel("Transfer Money");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setBounds(40, 40, 200, 30);
+        leftPanel.add(titleLabel);
+
+        JLabel accountNameLabel = new JLabel("Account Name:");
+        accountNameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        accountNameLabel.setBounds(40, 90, 200, 25);
+        leftPanel.add(accountNameLabel);
+
+        JTextField accountNameField = new JTextField();
+        accountNameField.setBackground(new Color(255, 255, 255));
+        accountNameField.setOpaque(true);
+        accountNameField.setBounds(40, 120, 300, 35);
+        accountNameField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
+        leftPanel.add(accountNameField);
+
+        JLabel accountNumberLabel = new JLabel("Account Number:");
+        accountNumberLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        accountNumberLabel.setBounds(40, 170, 150, 25);
+        leftPanel.add(accountNumberLabel);
+
+        JTextField accountNumberField = new JTextField();
+        accountNumberField.setBackground(new Color(255, 255, 255));
+        accountNumberField.setOpaque(true);
+        accountNumberField.setBounds(40, 200, 300, 35);
+        accountNumberField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
+        leftPanel.add(accountNumberField);
+
+        // Right Panel (Yellow)
+        JPanel rightPanel = new JPanel(null);
+        rightPanel.setBackground(new Color(244, 226, 124));
+        rightPanel.setBounds(400, 0, 400, 700);
+
+        JLabel availAmountLabel = new JLabel("Available Amount");
+        availAmountLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        availAmountLabel.setBounds(40, 40, 200, 30);
+        rightPanel.add(availAmountLabel);
+
+        JLabel balanceLabel = new JLabel("P " + user.balance);
+        balanceLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        balanceLabel.setBounds(40, 80, 200, 48);
+        rightPanel.add(balanceLabel);
+
+        JLabel enterAmountLabel = new JLabel("Enter Amount:");
+        enterAmountLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        enterAmountLabel.setBounds(40, 170, 150, 25);
+        rightPanel.add(enterAmountLabel);
+
+        JTextField amountField = new JTextField();
+        amountField.setBackground(new Color(255, 255, 255));
+        amountField.setOpaque(true);
+        amountField.setBounds(40, 200, 300, 35);
+        amountField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
+        rightPanel.add(amountField);
+
+        JLabel feeLabel = new JLabel("Fee:");
+        feeLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        feeLabel.setBounds(40, 250, 150, 25);
+        rightPanel.add(feeLabel);
+
+        JLabel feeAmountLabel = new JLabel("P 0.0");
+        feeAmountLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        feeAmountLabel.setBounds(40, 270, 150, 25);
+        rightPanel.add(feeAmountLabel);
+
+        JLabel feeNoteLabel = new JLabel("Note: No transfer fee for FEU Bank Account");
+        feeNoteLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        feeNoteLabel.setBounds(40, 300, 400, 25);
+        rightPanel.add(feeNoteLabel);
+
+        JButton ProceedButton = new JButton("PROCEED");
+        ProceedButton.setBounds(40, 330, 300, 40);
+        ProceedButton.setBackground(new Color(30, 30, 30));
+        ProceedButton.setForeground(Color.WHITE);
+        ProceedButton.setFont(new Font("Arial", Font.BOLD, 14));
+        ProceedButton.setOpaque(true);
+        ProceedButton.setBorderPainted(false);
+        ProceedButton.addActionListener(e -> {
+            String accName = accountNameField.getText();
+            String accNum = accountNumberField.getText();
+            String amount = amountField.getText();
+            JOptionPane.showMessageDialog(null,
+                    "Transferred P " + amount + " to " + accName + ", " + accNum,
+                    "SUCCESS",
+                    JOptionPane.INFORMATION_MESSAGE);
+        });
+        rightPanel.add(ProceedButton);
+
+        transferPanel.add(leftPanel);
+        transferPanel.add(rightPanel);
+
+        return transferPanel;
     }
 
+    //private JPanel createBillsPage(){
+    //}
 
+    private JPanel createLoadContent() {
+        JPanel loadPanel = new JPanel(null);
+        loadPanel.setBackground(Color.WHITE);
+        loadPanel.setPreferredSize(new Dimension(800, 700));
+    
+        // Left Panel (White)
+        JPanel leftPanel = new JPanel(null);
+        leftPanel.setBackground(Color.WHITE);
+        leftPanel.setBounds(0, 0, 400, 700);
+    
+        // Left panel components
+        JLabel titleLabel = new JLabel("Buy Load");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setBounds(40, 40, 200, 30);
+        leftPanel.add(titleLabel);
+    
+        JLabel serviceProviderLabel = new JLabel("Select Service Provider:");
+        serviceProviderLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        serviceProviderLabel.setBounds(40, 90, 200, 25);
+        leftPanel.add(serviceProviderLabel);
+    
+        String[] serviceProviders = {"Globe", "Smart", "TNT", "TM", "DITO"};
+        JComboBox<String> serviceProviderComboBox = new JComboBox<>(serviceProviders);
+        serviceProviderComboBox.setBounds(40, 120, 300, 35);
+        leftPanel.add(serviceProviderComboBox);
+    
+        JLabel methodLabel = new JLabel("Payment Method:");
+        methodLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        methodLabel.setBounds(40, 170, 150, 25);
+        leftPanel.add(methodLabel);
+    
+        String[] methods = {"Current", "Savings", "Credit"};
+        JComboBox<String> methodComboBox = new JComboBox<>(methods);
+        methodComboBox.setBounds(40, 200, 300, 35);
+        leftPanel.add(methodComboBox);
+    
+        // Right Panel (Yellow)
+        JPanel rightPanel = new JPanel(null);
+        rightPanel.setBackground(new Color(244, 226, 124));
+        rightPanel.setBounds(400, 0, 400, 700);
+    
+        JLabel phoneLabel = new JLabel("Buy Load for");
+        phoneLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        phoneLabel.setBounds(40, 40, 200, 30);
+        rightPanel.add(phoneLabel);
+    
+        JTextField numberField = new JTextField();
+        numberField.setBounds(40, 80, 300, 35);
+        numberField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
+        rightPanel.add(numberField);
+    
+        JLabel amountLabel = new JLabel("Enter Amount:");
+        amountLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        amountLabel.setBounds(40, 130, 150, 25);
+        rightPanel.add(amountLabel);
+    
+        JTextField amountField = new JTextField();
+        amountField.setBounds(40, 160, 300, 35);
+        amountField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
+        rightPanel.add(amountField);
+    
+        JButton loadButton = new JButton("LOAD MONEY");
+        loadButton.setBounds(40, 220, 300, 40);
+        loadButton.setBackground(new Color(30, 30, 30));
+        loadButton.setForeground(Color.WHITE);
+        loadButton.setFont(new Font("Arial", Font.BOLD, 14));
+        loadButton.setOpaque(true);
+        loadButton.setBorderPainted(false);
+        loadButton.addActionListener(e -> {
+            String amount = amountField.getText();
+            String method = (String) methodComboBox.getSelectedItem();
+            JOptionPane.showMessageDialog(null, 
+                "Loading " + amount + " via " + method, 
+                "Buy Load", 
+                JOptionPane.INFORMATION_MESSAGE);
+        });
+        rightPanel.add(loadButton);
+    
+        // Add panels to main panel
+        loadPanel.add(leftPanel);
+        loadPanel.add(rightPanel);
+    
+        return loadPanel;
+    }
+    
     private void createRegisterPage() {
-
-        BankAccountClass.UserAccount newAccount = new BankAccountClass.UserAccount("20241029", "john", "doe", "doe", "johndoe@gmail.com", "10292004", "Pasig City", 100, "admin", "1029");
-
-        accounts.add(newAccount);
 
         JFrame registerFrame = new JFrame("FEU Register Page");
         registerFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -376,16 +544,6 @@ public class Application {
         registerLabel.setFont(new Font("Arial", Font.BOLD, 24));
         registerLabel.setBounds(150, 20, 300, 40);
         registerPanel.add(registerLabel);
-
-//        JButton testButton = new JButton();
-//        testButton.addActionListener(e -> {
-//            System.out.println(newAccount.accountNumber);
-//            }
-//        );
-//        testButton.setBounds(150, 20, 50, 50);
-
-
-//        registerPanel.add(testButton);
 
         // Panel for First Name, Middle Name, Last Name
         JPanel namePanel = new JPanel();
@@ -515,486 +673,5 @@ public class Application {
         passwordField.setBackground(new Color(240, 240, 240));
         passwordField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
         return passwordField;
-    }
-
-    private void openTransferPage(JFrame parentFrame){
-        JFrame frame = new JFrame("Banking Dashboard");
-        frame.setSize(1000, 700);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
-
-        // Sidebar Panel
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(Color.decode("#1B5045"));
-        sidebar.setPreferredSize(new Dimension(180, frame.getHeight()));
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-
-        JLabel logoLabel = new JLabel("FEU", SwingConstants.LEFT);
-        logoLabel.setForeground(Color.decode("#F4E27C"));
-        logoLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-
-        JLabel onlineLabel = new JLabel("Online", SwingConstants.LEFT);
-        onlineLabel.setForeground(Color.white);
-        onlineLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        onlineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        onlineLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 0));
-
-        sidebar.add(Box.createVerticalStrut(20));
-        sidebar.add(logoLabel);
-        sidebar.add(onlineLabel);
-
-        // NavBar
-        JLabel load = new JLabel("Load", SwingConstants.LEFT);
-        load.setForeground(Color.white);
-        load.setFont(new Font("Arial",Font.BOLD,14));
-        load.setAlignmentX(Component.LEFT_ALIGNMENT);
-        load.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(load);
-
-        JLabel transfer = new JLabel("Transfer", SwingConstants.LEFT);
-        transfer.setForeground(Color.black);
-        transfer.setFont(new Font("Arial",Font.BOLD,18));
-        transfer.setAlignmentX(Component.LEFT_ALIGNMENT);
-        transfer.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        transfer.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                frame.dispose();
-                openTransferPage(frame);
-            }
-        });
-        sidebar.add(transfer);
-
-        frame.add(sidebar, BorderLayout.WEST);
-
-        // Set frame visible
-        frame.setVisible(true);
-
-        JLabel loan = new JLabel("Loan", SwingConstants.LEFT);
-        loan.setFont(new Font("Arial",Font.BOLD,14));
-        loan.setForeground(Color.white);
-        loan.setAlignmentX(Component.LEFT_ALIGNMENT);
-        loan.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(loan);
-
-        JLabel bills = new JLabel("Bills", SwingConstants.LEFT);
-        bills.setForeground(Color.white);
-        bills.setFont(new Font("Arial",Font.BOLD,14));
-        bills.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bills.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(bills);
-
-        JLabel inbox = new JLabel("Inbox", SwingConstants.LEFT);
-        inbox.setForeground(Color.white);
-        inbox.setFont(new Font("Arial",Font.BOLD,14));
-        inbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        inbox.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(inbox);
-
-        // Add glue to push remaining items to the bottom
-        sidebar.add(Box.createVerticalGlue());
-
-        String name = capitalizeFirstLetter(loggedInAccount.firstName) + " " + capitalizeFirstLetter(loggedInAccount.lastName);
-
-        // Bottom menu items
-        JLabel userProfile = new JLabel(name, SwingConstants.LEFT);
-        userProfile.setForeground(Color.WHITE);
-        userProfile.setFont(new Font("Arial", Font.BOLD, 14));
-        userProfile.setAlignmentX(Component.LEFT_ALIGNMENT);
-        userProfile.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(userProfile);
-
-        JLabel customerSupport = new JLabel("Customer Support", SwingConstants.LEFT);
-        customerSupport.setForeground(Color.WHITE);
-        customerSupport.setFont(new Font("Arial", Font.BOLD, 14));
-        customerSupport.setAlignmentX(Component.LEFT_ALIGNMENT);
-        customerSupport.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(customerSupport);
-
-        JLabel accountSettings = new JLabel("Account Settings", SwingConstants.LEFT);
-        accountSettings.setForeground(Color.WHITE);
-        accountSettings.setFont(new Font("Arial", Font.BOLD, 14));
-        accountSettings.setAlignmentX(Component.LEFT_ALIGNMENT);
-        accountSettings.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 0)); // Padding
-        sidebar.add(accountSettings);
-
-        JPanel rightPanel = new JPanel();
-        rightPanel.setBackground(Color.WHITE);
-        rightPanel.setSize(800, frame.getHeight());
-        rightPanel.setLayout(new GridLayout(4, 1));
-
-        JLabel header = new JLabel("Fast Earning Unibank", SwingConstants.CENTER);
-        header.setFont(new Font("Arial", Font.BOLD, 36));
-        header.setForeground(Color.decode("#DB9E3D"));
-        rightPanel.add(header);
-
-        JLabel subHeader = new JLabel("No Waiting, Just Earning", SwingConstants.CENTER);
-        subHeader.setFont(new Font("Arial", Font.BOLD, 24));
-        subHeader.setForeground(Color.decode("#49454F"));
-        rightPanel.add(subHeader);
-
-        JButton feuTransferButton = new JButton("FEU Bank Account Transfer");
-        feuTransferButton.setFont(new Font("Arial", Font.BOLD, 16));
-        feuTransferButton.setBackground(Color.decode("#1E1E1E"));
-        feuTransferButton.setForeground(Color.WHITE);
-        feuTransferButton.setPreferredSize(new Dimension(800,100));
-        feuTransferButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                frame.dispose();
-                FeuBankAccountTransferPage();
-            }
-        });
-        rightPanel.add(feuTransferButton);
-
-        JButton otherTransferButton = new JButton("Other Bank Account Transfer");
-        otherTransferButton.setFont(new Font("Arial", Font.BOLD, 16));
-        otherTransferButton.setBackground(Color.decode("#1E1E1E"));
-        otherTransferButton.setForeground(Color.WHITE);
-        otherTransferButton.setPreferredSize(new Dimension(800,100));
-        otherTransferButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                frame.dispose();
-                OtherBankAccountTransferPage();
-            }
-        });
-        rightPanel.add(otherTransferButton);
-
-        // Add components to frame
-        frame.add(sidebar, BorderLayout.WEST);
-        frame.add(rightPanel, BorderLayout.EAST);
-        frame.setLocationRelativeTo(parentFrame);
-        frame.setVisible(true);
-    }
-
-    private void FeuBankAccountTransferPage(){
-        JFrame frame = new JFrame("Banking Dashboard");
-        frame.setSize(1000, 700);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
-
-        // Sidebar Panel
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(Color.decode("#1B5045"));
-        sidebar.setPreferredSize(new Dimension(180, frame.getHeight()));
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-
-        JLabel logoLabel = new JLabel("FEU", SwingConstants.LEFT);
-        logoLabel.setForeground(Color.decode("#F4E27C"));
-        logoLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-
-        JLabel onlineLabel = new JLabel("Online", SwingConstants.LEFT);
-        onlineLabel.setForeground(Color.white);
-        onlineLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        onlineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        onlineLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 0));
-
-        sidebar.add(Box.createVerticalStrut(20));
-        sidebar.add(logoLabel);
-        sidebar.add(onlineLabel);
-
-        // NavBar
-        JLabel load = new JLabel("Load", SwingConstants.LEFT);
-        load.setForeground(Color.white);
-        load.setFont(new Font("Arial",Font.BOLD,14));
-        load.setAlignmentX(Component.LEFT_ALIGNMENT);
-        load.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(load);
-
-        JLabel transfer = new JLabel("Transfer", SwingConstants.LEFT);
-        transfer.setForeground(Color.black);
-        transfer.setFont(new Font("Arial",Font.BOLD,18));
-        transfer.setAlignmentX(Component.LEFT_ALIGNMENT);
-        transfer.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        transfer.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                frame.dispose();
-                openTransferPage(frame);
-            }
-        });
-        sidebar.add(transfer);
-
-        frame.add(sidebar, BorderLayout.WEST);
-
-        // Set frame visible
-        frame.setVisible(true);
-
-        JLabel loan = new JLabel("Loan", SwingConstants.LEFT);
-        loan.setFont(new Font("Arial",Font.BOLD,14));
-        loan.setForeground(Color.white);
-        loan.setAlignmentX(Component.LEFT_ALIGNMENT);
-        loan.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(loan);
-
-        JLabel bills = new JLabel("Bills", SwingConstants.LEFT);
-        bills.setForeground(Color.white);
-        bills.setFont(new Font("Arial",Font.BOLD,14));
-        bills.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bills.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(bills);
-
-        JLabel inbox = new JLabel("Inbox", SwingConstants.LEFT);
-        inbox.setForeground(Color.white);
-        inbox.setFont(new Font("Arial",Font.BOLD,14));
-        inbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        inbox.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(inbox);
-
-        // Add glue to push remaining items to the bottom
-        sidebar.add(Box.createVerticalGlue());
-
-        String name = capitalizeFirstLetter(loggedInAccount.firstName) + " " + capitalizeFirstLetter(loggedInAccount.lastName);
-
-        // Bottom menu items
-        JLabel userProfile = new JLabel(name, SwingConstants.LEFT);
-        userProfile.setForeground(Color.WHITE);
-        userProfile.setFont(new Font("Arial", Font.BOLD, 14));
-        userProfile.setAlignmentX(Component.LEFT_ALIGNMENT);
-        userProfile.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(userProfile);
-
-        JLabel customerSupport = new JLabel("Customer Support", SwingConstants.LEFT);
-        customerSupport.setForeground(Color.WHITE);
-        customerSupport.setFont(new Font("Arial", Font.BOLD, 14));
-        customerSupport.setAlignmentX(Component.LEFT_ALIGNMENT);
-        customerSupport.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(customerSupport);
-
-        JLabel accountSettings = new JLabel("Account Settings", SwingConstants.LEFT);
-        accountSettings.setForeground(Color.WHITE);
-        accountSettings.setFont(new Font("Arial", Font.BOLD, 14));
-        accountSettings.setAlignmentX(Component.LEFT_ALIGNMENT);
-        accountSettings.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 0)); // Padding
-        sidebar.add(accountSettings);
-
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new GridLayout(4, 1, 10, 20)); // One column with rows for form fields
-
-        JLabel titleLabel = new JLabel("FEU Account Transfer", JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
-
-        JPanel accountInfoPanel = new JPanel(new GridLayout(2, 2));
-        accountInfoPanel.setBorder(BorderFactory.createTitledBorder("Transfer Details"));
-
-        JLabel accountNameLabel = new JLabel("Account Name:");
-        JTextField accountNameField = new JTextField();
-        JLabel accountNumberLabel = new JLabel("Account Number:");
-        JTextField accountNumberField = new JTextField();
-
-        accountInfoPanel.add(accountNameLabel);
-        accountInfoPanel.add(accountNameField);
-        accountInfoPanel.add(accountNumberLabel);
-        accountInfoPanel.add(accountNumberField);
-
-        // Balance and amount to transfer section
-        JPanel balancePanel = new JPanel();
-        balancePanel.setBackground(new Color(255, 255, 204)); // Light yellow background
-
-        JLabel availableBalanceLabel = new JLabel("Available Amount: P 1,000,000.00", JLabel.LEFT);
-        availableBalanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
-
-        JLabel transferAmountLabel = new JLabel("Amount:");
-        JTextField transferAmountField = new JTextField(10);
-        JLabel transferFeeLabel = new JLabel("Fee: P 0.00", JLabel.LEFT);
-        transferFeeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-
-        balancePanel.add(availableBalanceLabel);
-        balancePanel.add(transferAmountLabel);
-        balancePanel.add(transferAmountField);
-        balancePanel.add(transferFeeLabel);
-
-        // Proceed button
-        JButton proceedButton = new JButton("Proceed");
-        proceedButton.setBackground(Color.decode("#1E1E1E"));
-        proceedButton.setFont(new Font("Arial", Font.BOLD, 24));
-        proceedButton.setForeground(Color.WHITE);
-
-        proceedButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(frame, "Transfer Proceeded!");
-                frame.dispose(); // Close the current window after clicking Proceed
-            }
-        });
-
-        rightPanel.add(titleLabel);
-        rightPanel.add(accountInfoPanel);
-        rightPanel.add(balancePanel);
-        rightPanel.add(proceedButton);
-
-        frame.add(rightPanel, BorderLayout.CENTER);
-    }
-
-    private void OtherBankAccountTransferPage(){
-        JFrame frame = new JFrame("Banking Dashboard");
-        frame.setSize(1000, 700);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setResizable(false);
-        frame.setLocationRelativeTo(null);
-        frame.setLayout(new BorderLayout());
-
-        // Sidebar Panel
-        JPanel sidebar = new JPanel();
-        sidebar.setBackground(Color.decode("#1B5045"));
-        sidebar.setPreferredSize(new Dimension(180, frame.getHeight()));
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-
-        JLabel logoLabel = new JLabel("FEU", SwingConstants.LEFT);
-        logoLabel.setForeground(Color.decode("#F4E27C"));
-        logoLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        logoLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        logoLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 0));
-
-        JLabel onlineLabel = new JLabel("Online", SwingConstants.LEFT);
-        onlineLabel.setForeground(Color.white);
-        onlineLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        onlineLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        onlineLabel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 0));
-
-        sidebar.add(Box.createVerticalStrut(20));
-        sidebar.add(logoLabel);
-        sidebar.add(onlineLabel);
-
-        // NavBar
-        JLabel load = new JLabel("Load", SwingConstants.LEFT);
-        load.setForeground(Color.white);
-        load.setFont(new Font("Arial",Font.BOLD,14));
-        load.setAlignmentX(Component.LEFT_ALIGNMENT);
-        load.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(load);
-
-        JLabel transfer = new JLabel("Transfer", SwingConstants.LEFT);
-        transfer.setForeground(Color.black);
-        transfer.setFont(new Font("Arial",Font.BOLD,18));
-        transfer.setAlignmentX(Component.LEFT_ALIGNMENT);
-        transfer.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        transfer.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
-                frame.dispose();
-                openTransferPage(frame);
-            }
-        });
-        sidebar.add(transfer);
-
-        frame.add(sidebar, BorderLayout.WEST);
-
-        // Set frame visible
-        frame.setVisible(true);
-
-        JLabel loan = new JLabel("Loan", SwingConstants.LEFT);
-        loan.setFont(new Font("Arial",Font.BOLD,14));
-        loan.setForeground(Color.white);
-        loan.setAlignmentX(Component.LEFT_ALIGNMENT);
-        loan.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(loan);
-
-        JLabel bills = new JLabel("Bills", SwingConstants.LEFT);
-        bills.setForeground(Color.white);
-        bills.setFont(new Font("Arial",Font.BOLD,14));
-        bills.setAlignmentX(Component.LEFT_ALIGNMENT);
-        bills.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(bills);
-
-        JLabel inbox = new JLabel("Inbox", SwingConstants.LEFT);
-        inbox.setForeground(Color.white);
-        inbox.setFont(new Font("Arial",Font.BOLD,14));
-        inbox.setAlignmentX(Component.LEFT_ALIGNMENT);
-        inbox.setBorder(BorderFactory.createEmptyBorder(10, 20, 10,0));
-        sidebar.add(inbox);
-
-        // Add glue to push remaining items to the bottom
-        sidebar.add(Box.createVerticalGlue());
-
-        String name = capitalizeFirstLetter(loggedInAccount.firstName) + " " + capitalizeFirstLetter(loggedInAccount.lastName);
-
-        // Bottom menu items
-        JLabel userProfile = new JLabel(name, SwingConstants.LEFT);
-        userProfile.setForeground(Color.WHITE);
-        userProfile.setFont(new Font("Arial", Font.BOLD, 14));
-        userProfile.setAlignmentX(Component.LEFT_ALIGNMENT);
-        userProfile.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(userProfile);
-
-        JLabel customerSupport = new JLabel("Customer Support", SwingConstants.LEFT);
-        customerSupport.setForeground(Color.WHITE);
-        customerSupport.setFont(new Font("Arial", Font.BOLD, 14));
-        customerSupport.setAlignmentX(Component.LEFT_ALIGNMENT);
-        customerSupport.setBorder(BorderFactory.createEmptyBorder(10, 20, 10, 0)); // Padding
-        sidebar.add(customerSupport);
-
-        JLabel accountSettings = new JLabel("Account Settings", SwingConstants.LEFT);
-        accountSettings.setForeground(Color.WHITE);
-        accountSettings.setFont(new Font("Arial", Font.BOLD, 14));
-        accountSettings.setAlignmentX(Component.LEFT_ALIGNMENT);
-        accountSettings.setBorder(BorderFactory.createEmptyBorder(10, 20, 20, 0)); // Padding
-        sidebar.add(accountSettings);
-
-        JPanel rightPanel = new JPanel();
-        rightPanel.setLayout(new GridLayout(4, 1, 10, 20)); // One column with rows for form fields
-
-        JLabel titleLabel = new JLabel("Other Bank Accounts Transfer", JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 36));
-
-        JPanel accountInfoPanel = new JPanel(new GridLayout(2, 2));
-        accountInfoPanel.setBorder(BorderFactory.createTitledBorder("Transfer Details"));
-
-        JLabel accountNameLabel = new JLabel("Account Name:");
-        JTextField accountNameField = new JTextField();
-        JLabel accountNumberLabel = new JLabel("Account Number:");
-        JTextField accountNumberField = new JTextField();
-
-        accountInfoPanel.add(accountNameLabel);
-        accountInfoPanel.add(accountNameField);
-        accountInfoPanel.add(accountNumberLabel);
-        accountInfoPanel.add(accountNumberField);
-
-        // Balance and amount to transfer section
-        JPanel balancePanel = new JPanel();
-        balancePanel.setBackground(new Color(255, 255, 204)); // Light yellow background
-
-        JLabel availableBalanceLabel = new JLabel("Available Amount: P 1,000,000.00", JLabel.LEFT);
-        availableBalanceLabel.setFont(new Font("Arial", Font.BOLD, 16));
-
-        JLabel transferAmountLabel = new JLabel("Amount:");
-        JTextField transferAmountField = new JTextField(10);
-        JLabel transferFeeLabel = new JLabel("Fee: P 20.00", JLabel.LEFT);
-        transferFeeLabel.setFont(new Font("Arial", Font.PLAIN, 14));
-
-        balancePanel.add(availableBalanceLabel);
-        balancePanel.add(transferAmountLabel);
-        balancePanel.add(transferAmountField);
-        balancePanel.add(transferFeeLabel);
-
-        // Proceed button
-        JButton proceedButton = new JButton("Proceed");
-        proceedButton.setBackground(Color.decode("#1E1E1E"));
-        proceedButton.setForeground(Color.WHITE);
-        proceedButton.setFont(new Font("Arial", Font.BOLD, 24));
-
-        proceedButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                JOptionPane.showMessageDialog(frame, "Transfer Proceeded!");
-                frame.dispose(); // Close the current window after clicking Proceed
-            }
-        });
-
-        rightPanel.add(titleLabel);
-        rightPanel.add(accountInfoPanel);
-        rightPanel.add(balancePanel);
-        rightPanel.add(proceedButton);
-
-        frame.add(rightPanel, BorderLayout.CENTER);
     }
 }
