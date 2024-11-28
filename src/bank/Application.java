@@ -351,27 +351,37 @@ public class Application {
         titleLabel.setBounds(40, 40, 200, 30);
         leftPanel.add(titleLabel);
 
+        JLabel chooseAccLabel = new JLabel("Choose which account to transfer:");
+        chooseAccLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        chooseAccLabel.setBounds(40, 90, 300, 25);
+        leftPanel.add(chooseAccLabel);
+
+        String[] methods = {"FEU Account Transfer", "Other Bank Account Transfer"};
+        JComboBox<String> methodComboBox = new JComboBox<>(methods);
+        methodComboBox.setBounds(40, 120, 300, 35);
+        leftPanel.add(methodComboBox);
+
         JLabel accountNameLabel = new JLabel("Account Name:");
         accountNameLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        accountNameLabel.setBounds(40, 90, 200, 25);
+        accountNameLabel.setBounds(40, 170, 200, 25);
         leftPanel.add(accountNameLabel);
 
         JTextField accountNameField = new JTextField();
         accountNameField.setBackground(new Color(255, 255, 255));
         accountNameField.setOpaque(true);
-        accountNameField.setBounds(40, 120, 300, 35);
+        accountNameField.setBounds(40, 200, 300, 35);
         accountNameField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
         leftPanel.add(accountNameField);
 
         JLabel accountNumberLabel = new JLabel("Account Number:");
         accountNumberLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        accountNumberLabel.setBounds(40, 170, 150, 25);
+        accountNumberLabel.setBounds(40, 250, 150, 25);
         leftPanel.add(accountNumberLabel);
 
         JTextField accountNumberField = new JTextField();
         accountNumberField.setBackground(new Color(255, 255, 255));
         accountNumberField.setOpaque(true);
-        accountNumberField.setBounds(40, 200, 300, 35);
+        accountNumberField.setBounds(40, 280, 300, 35);
         accountNumberField.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1, true));
         leftPanel.add(accountNumberField);
 
